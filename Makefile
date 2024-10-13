@@ -1,4 +1,4 @@
-SERVICE_NAME=calculator
+SERVICE_NAME=beatflow-auth
 
 TEST_FLAGS=-count=1
 BUILD_FLAGS=
