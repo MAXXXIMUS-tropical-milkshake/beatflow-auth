@@ -48,9 +48,9 @@ func (s *store) AddUser(ctx context.Context, user core.User) (int, error) {
 
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			err = tx.Rollback()
 		} else {
-			tx.Commit()
+			err = tx.Commit()
 		}
 	}()
 

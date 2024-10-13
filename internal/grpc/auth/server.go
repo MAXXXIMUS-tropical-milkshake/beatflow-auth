@@ -31,9 +31,9 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrInvalidCredentials) {
-			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
-		return nil, status.Errorf(codes.Internal, "failed to login")
+		return nil, status.Error(codes.Internal, "failed to login")
 	}
 
 	return &authv1.LoginResponse{Token: *token}, nil
@@ -49,9 +49,9 @@ func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrUserAlreadyExists) {
-			return nil, status.Errorf(codes.AlreadyExists, err.Error())
+			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
-		return nil, status.Errorf(codes.Internal, "failed to signup")
+		return nil, status.Error(codes.Internal, "failed to signup")
 	}
 
 	return &authv1.SignupResponse{}, nil
@@ -61,7 +61,7 @@ func (s *server) UpdatePassword(ctx context.Context, req *authv1.UpdatePasswordR
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	user := core.User{
@@ -72,7 +72,7 @@ func (s *server) UpdatePassword(ctx context.Context, req *authv1.UpdatePasswordR
 	err = s.auth.UpdatePassword(ctx, user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return nil, status.Errorf(codes.Internal, "failed to update password")
+		return nil, status.Error(codes.Internal, "failed to update password")
 	}
 
 	return &authv1.UpdatePasswordResponse{}, nil
