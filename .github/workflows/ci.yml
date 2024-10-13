@@ -1,0 +1,54 @@
+name: Backend CI
+
+on:
+    push:
+        branches:
+            - '**'
+    pull_request:
+        branches: 
+            - main
+
+jobs:
+    build:
+        name: Build the program
+        runs-on: ubuntu-latest
+        needs: test_and_lint
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                go-version: '1.23.1'
+            
+            - name: Install dependencies
+              run: go mod tidy
+
+            - name: Build
+              run: make build
+
+    test_and_lint:
+      name: Run tests and lint
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+
+        - name: Setup Go
+          uses: actions/setup-go@v5
+          with:
+            go-version: '1.23.1'
+
+        - name: Install project dependencies
+          run: go mod tidy
+
+        - name: Tests
+          run: make test
+          
+        - name: Lint
+          uses: golangci/golangci-lint-action@v6
+          with:
+            version: v1.60
