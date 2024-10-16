@@ -20,8 +20,9 @@ func main() {
 
 	application := app.New(ctx, cfg)
 
-	// Closing DB
+	// Closing DBs
 	defer application.PG.Close(ctx)
+	defer application.RDB.Close()
 
 	go func() { application.GRPCServer.MustRun(ctx) }()
 

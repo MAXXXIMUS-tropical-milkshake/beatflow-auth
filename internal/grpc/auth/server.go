@@ -3,9 +3,14 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core"
+	helper "github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/grpc"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/request"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/response"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/validator"
 	authv1 "github.com/MAXXXIMUS-tropical-milkshake/beatflow-protos/gen/go/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -13,67 +18,94 @@ import (
 )
 
 type server struct {
-	authv1.UnimplementedAuthServer
+	authv1.UnimplementedAuthServiceServer
 	auth core.AuthService
 }
 
 func Register(gRPCServer *grpc.Server, auth core.AuthService) {
-	authv1.RegisterAuthServer(gRPCServer, &server{auth: auth})
+	authv1.RegisterAuthServiceServer(gRPCServer, &server{auth: auth})
+}
+
+func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.RefreshTokenResponse, error) {
+	accessToken, refreshToken, err := s.auth.RefreshToken(ctx, req.GetRefreshToken())
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		if errors.Is(err, core.ErrRefreshTokenNotValid) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
+	}
+
+	return response.ToRefreshTokenResponse(*accessToken, *refreshToken), nil
 }
 
 func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
-	user := core.User{
-		Username:     req.GetUsername(),
-		PasswordHash: req.GetPassword(),
+	v := validator.New()
+	if request.ValidateLoginRequest(v, req); !v.Valid() {
+		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
+		return nil, helper.ToGRPCError(v)
 	}
 
-	token, err := s.auth.Login(ctx, user)
+	user := request.FromLoginRequest(req)
+
+	accessToken, refreshToken, err := s.auth.Login(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
-		return nil, status.Error(codes.Internal, "failed to login")
+		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
 
-	return &authv1.LoginResponse{Token: *token}, nil
+	return &authv1.LoginResponse{AccessToken: *accessToken, RefreshToken: *refreshToken}, nil
 }
 
 func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1.SignupResponse, error) {
-	user := core.User{
-		Username:     req.GetUsername(),
-		PasswordHash: req.GetPassword(),
+	v := validator.New()
+	if request.ValidateSignupRequest(v, req); !v.Valid() {
+		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
+		return nil, helper.ToGRPCError(v)
 	}
 
-	err := s.auth.Signup(ctx, user)
+	user := request.FromSignupRequest(req)
+
+	retUser, err := s.auth.Signup(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrUserAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
-		return nil, status.Error(codes.Internal, "failed to signup")
+		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
 
-	return &authv1.SignupResponse{}, nil
+	return response.ToSignupResponse(*retUser), nil
 }
 
-func (s *server) UpdatePassword(ctx context.Context, req *authv1.UpdatePasswordRequest) (*authv1.UpdatePasswordResponse, error) {
-	userID, err := getUserIDFromContext(ctx)
+func (s *server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) (*authv1.UpdateUserResponse, error) {
+	v := validator.New()
+	if request.ValidateUpdateUserRequest(v, req); !v.Valid() {
+		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
+		return nil, helper.ToGRPCError(v)
+	}
+
+	userID, err := helper.GetUserIDFromContext(ctx)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+		return nil, status.Error(codes.Unauthenticated, core.ErrInvalidCredentials.Error())
 	}
 
-	user := core.User{
-		ID:           userID,
-		PasswordHash: req.GetNewPassword(),
-	}
+	user := request.FromUpdateUserRequest(req, userID)
 
-	err = s.auth.UpdatePassword(ctx, user)
+	retUser, err := s.auth.UpdateUser(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return nil, status.Error(codes.Internal, "failed to update password")
+		if errors.Is(err, core.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		} else if errors.Is(err, core.ErrEmailAlreadyExists) || errors.Is(err, core.ErrUsernameAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, err.Error())
+		}
+		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
 
-	return &authv1.UpdatePasswordResponse{}, nil
+	return response.ToUpdateUserResponse(*retUser), nil
 }

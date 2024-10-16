@@ -1,11 +1,15 @@
-package auth
+package gprc
 
 import (
 	"context"
 
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/validator"
 	"github.com/golang-jwt/jwt"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func validToken(ctx context.Context, tokenString string, secret string) (*int, error) {
@@ -35,7 +39,7 @@ func validToken(ctx context.Context, tokenString string, secret string) (*int, e
 	return nil, core.ErrUnauthorized
 }
 
-func getUserIDFromContext(ctx context.Context) (int, error) {
+func GetUserIDFromContext(ctx context.Context) (int, error) {
 	id, ok := ctx.Value(userIDContextKey).(int)
 	if !ok {
 		logger.Log().Debug(ctx, "user id is not provided")
@@ -43,4 +47,20 @@ func getUserIDFromContext(ctx context.Context) (int, error) {
 	}
 
 	return id, nil
+}
+
+func ToGRPCError(v *validator.Validator) error {
+	st := status.New(codes.InvalidArgument, core.ErrValidationFailed.Error())
+	var violations []*errdetails.QuotaFailure_Violation
+	for k, v := range v.Errors {
+		violations = append(violations, &errdetails.QuotaFailure_Violation{
+			Subject:     k,
+			Description: v,
+		})
+	}
+	ds, err := st.WithDetails(&errdetails.QuotaFailure{Violations: violations})
+	if err != nil {
+		return st.Err()
+	}
+	return ds.Err()
 }

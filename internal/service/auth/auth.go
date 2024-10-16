@@ -2,85 +2,158 @@ package auth
 
 import (
 	"context"
+	"time"
 
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/jwt"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
-	userStorage core.UserStore
-	authConfig  core.AuthConfig
+	userStorage         core.UserStore
+	refreshTokenStorage core.RefreshTokenStore
+	authConfig          core.AuthConfig
 }
 
-func NewConfig(secret string, tokenTTL int) core.AuthConfig {
+func NewConfig(secret string, accessTokenTTL, refreshTokenTTL int) core.AuthConfig {
 	return core.AuthConfig{
-		Secret:   secret,
-		TokenTTL: tokenTTL,
+		Secret:          secret,
+		AccessTokenTTL:  accessTokenTTL,
+		RefreshTokenTTL: refreshTokenTTL,
 	}
 }
 
-func New(userStorage core.UserStore, authConfig core.AuthConfig) core.AuthService {
+func New(userStorage core.UserStore, refreshTokenStorage core.RefreshTokenStore, authConfig core.AuthConfig) core.AuthService {
 	return &service{
-		userStorage: userStorage,
-		authConfig:  authConfig,
+		userStorage:         userStorage,
+		refreshTokenStorage: refreshTokenStorage,
+		authConfig:          authConfig,
 	}
 }
 
-func (s *service) Login(ctx context.Context, user core.User) (*string, error) {
-	userFromDB, err := s.userStorage.GetUserByUsername(ctx, user.Username)
+func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*string, *string, error) {
+	userID, err := s.refreshTokenStorage.GetRefreshToken(ctx, refreshToken)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return nil, err
+		return nil, nil, err
+	}
+
+	err = s.refreshTokenStorage.DeleteRefreshToken(ctx, refreshToken)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, nil, err
+	}
+
+	userFromDB, err := s.userStorage.GetUserByID(ctx, userID)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, nil, err
+	}
+
+	accessToken, err := jwt.GenerateToken(userFromDB.ID, s.authConfig)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, nil, err
+	}
+
+	newRefreshToken := uuid.New().String()
+	err = s.refreshTokenStorage.SetRefreshToken(ctx, userFromDB.ID, newRefreshToken, time.Minute*time.Duration(s.authConfig.RefreshTokenTTL))
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, nil, err
+	}
+
+	return accessToken, &newRefreshToken, nil
+}
+
+func (s *service) Login(ctx context.Context, user core.User) (*string, *string, error) {
+	userFromDB, err := s.userStorage.GetUserByEmail(ctx, user.Email)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(userFromDB.PasswordHash), []byte(user.PasswordHash))
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return nil, core.ErrInvalidCredentials
+		return nil, nil, core.ErrInvalidCredentials
 	}
 
-	token, err := jwt.GenerateToken(userFromDB.ID, s.authConfig)
+	accessToken, err := jwt.GenerateToken(userFromDB.ID, s.authConfig)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, nil, err
+	}
+
+	refreshToken := uuid.New().String()
+	err = s.refreshTokenStorage.SetRefreshToken(ctx, userFromDB.ID, refreshToken, time.Minute*time.Duration(s.authConfig.RefreshTokenTTL))
+	if err != nil {
+		logger.Log().Info(ctx, err.Error())
+		return nil, nil, err
+	}
+
+	return accessToken, &refreshToken, nil
+}
+
+func (s *service) Signup(ctx context.Context, user core.User) (*core.User, error) {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), bcrypt.DefaultCost)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		return nil, err
 	}
 
-	return token, nil
-}
-
-func (s *service) Signup(ctx context.Context, user core.User) error {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), bcrypt.DefaultCost)
-	if err != nil {
-		logger.Log().Error(ctx, err.Error())
-		return err
-	}
-
 	user.PasswordHash = string(passwordHash)
 
-	_, err = s.userStorage.AddUser(ctx, user)
+	userID, err := s.userStorage.AddUser(ctx, user)
 	if err != nil {
-		return err
+		logger.Log().Error(ctx, err.Error())
+		return nil, err
 	}
 
-	return nil
+	retUser, err := s.userStorage.GetUserByID(ctx, userID)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, err
+	}
+
+	return retUser, nil
 }
 
-func (s *service) UpdatePassword(ctx context.Context, user core.User) error {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), bcrypt.DefaultCost)
-	if err != nil {
-		logger.Log().Error(ctx, err.Error())
-		return err
+func (s *service) UpdateUser(ctx context.Context, user core.UpdateUser) (*core.User, error) {
+	if user.Password != nil {
+		newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			logger.Log().Error(ctx, err.Error())
+			return nil, err
+		}
+
+		user.Password.NewPassword = string(newPasswordHash)
+
+		userFromDB, err := s.userStorage.GetUserByID(ctx, user.ID)
+		if err != nil {
+			logger.Log().Error(ctx, err.Error())
+			return nil, err
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(userFromDB.PasswordHash), []byte(user.Password.OldPassword)); err != nil {
+			logger.Log().Error(ctx, err.Error())
+			return nil, core.ErrInvalidCredentials
+		}
 	}
 
-	user.PasswordHash = string(passwordHash)
-
-	_, err = s.userStorage.UpdateUser(ctx, user)
+	userID, err := s.userStorage.UpdateUser(ctx, user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		return err
+		return nil, err
 	}
 
-	return nil
+	retUser, err := s.userStorage.GetUserByID(ctx, userID)
+	if err != nil {
+		logger.Log().Error(ctx, err.Error())
+		return nil, err
+	}
+
+	return retUser, nil
 }

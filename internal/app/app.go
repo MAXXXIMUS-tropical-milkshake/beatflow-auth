@@ -7,13 +7,16 @@ import (
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/config"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/postgres"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/redis"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/service/auth"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/store/postgres/user"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/store/redis/refreshtoken"
 )
 
 type App struct {
 	GRPCServer *grpcapp.App
 	PG         *postgres.Postgres
+	RDB        *redis.Redis
 }
 
 func New(ctx context.Context, cfg *config.Config) *App {
@@ -26,14 +29,25 @@ func New(ctx context.Context, cfg *config.Config) *App {
 		logger.Log().Fatal(ctx, "error with connection to database: %s", err.Error())
 	}
 
+	// Redis connection
+	rdb, err := redis.New(ctx, redis.Config{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+	if err != nil {
+		logger.Log().Fatal(ctx, "error with connection to redis: %s", err.Error())
+	}
+
 	// Auth config
-	authConfig := auth.NewConfig(cfg.JWTSecret, cfg.TokenTTL)
+	authConfig := auth.NewConfig(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 
 	// Store
 	userStore := user.New(pg)
+	refreshTokenStore := refreshtoken.New(rdb)
 
 	// Service
-	authService := auth.New(userStore, authConfig)
+	authService := auth.New(userStore, refreshTokenStore, authConfig)
 
 	// gRPC server
 	gRPCApp := grpcapp.New(ctx, authService, cfg)
@@ -41,5 +55,6 @@ func New(ctx context.Context, cfg *config.Config) *App {
 	return &App{
 		GRPCServer: gRPCApp,
 		PG:         pg,
+		RDB:        rdb,
 	}
 }

@@ -9,7 +9,17 @@ require (
 
 require github.com/golang-jwt/jwt v3.2.2+incompatible
 
-require github.com/MAXXXIMUS-tropical-milkshake/beatflow-protos v0.0.1
+require (
+	github.com/MAXXXIMUS-tropical-milkshake/beatflow-protos v0.0.8
+	github.com/redis/go-redis/v9 v9.6.2
+)
+
+require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
+)
 
 require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
@@ -23,7 +33,7 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241007155032-5fefd90f89a9
 	google.golang.org/grpc v1.67.0
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 )
