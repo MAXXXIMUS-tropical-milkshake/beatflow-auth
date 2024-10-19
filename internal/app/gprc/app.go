@@ -32,7 +32,7 @@ func New(
 	requireAuth := map[string]bool{
 		"/auth.AuthService/Login":        false,
 		"/auth.AuthService/Signup":       false,
-		"/auth.AuthService/RefreshToken": true,
+		"/auth.AuthService/RefreshToken": false,
 		"/auth.AuthService/UpdateUser":   true,
 	}
 

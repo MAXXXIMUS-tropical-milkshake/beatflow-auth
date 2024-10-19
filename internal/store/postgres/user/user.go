@@ -100,6 +100,16 @@ func (s *store) AddUser(ctx context.Context, user core.User) (userID int, err er
 		return 0, err
 	}
 
+	stmt = `SELECT id FROM users
+	WHERE email = $1`
+
+	err = tx.QueryRowContext(ctx, stmt, user.Email).Scan(&userID)
+	if userID != 0 {
+		return 0, core.ErrUserAlreadyExists
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return 0, err
+	}
+
 	stmt = `INSERT INTO users (username, email, password_hash)
 	VALUES ($1, $2, $3) RETURNING id`
 
@@ -157,7 +167,8 @@ func (s *store) UpdateUser(ctx context.Context, user core.UpdateUser) (userID in
 	stmt := `UPDATE users SET
 	password_hash = COALESCE($1, password_hash),
 	username = COALESCE($2, username),
-	email = COALESCE($3, email)
+	email = COALESCE($3, email),
+	updated_at = DEFAULT
 	WHERE id = $4
 	RETURNING id`
 	err = tx.QueryRowContext(ctx, stmt, password, user.Username, user.Email, user.ID).Scan(&userID)

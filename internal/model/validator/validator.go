@@ -43,3 +43,12 @@ func Between(value, lower, upper int) bool {
 func AtLeast(value, lower int) bool {
 	return lower <= value
 }
+
+func OneOf(value string, other ...string) bool {
+	for i := range other {
+		if value == other[i] {
+			return true
+		}
+	}
+	return false
+}

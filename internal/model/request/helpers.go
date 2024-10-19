@@ -15,3 +15,7 @@ func validateUsername(v *validator.Validator, username string) {
 func validatePassword(v *validator.Validator, password string) {
 	v.Check(validator.AtLeast(len(password), 8), "password", "must contain at least 8 characters")
 }
+
+func validatePath(v *validator.Validator, path string) {
+	v.Check(validator.OneOf(path, "username", "email", "password"), "path", "path should be one of username, email or password")
+}

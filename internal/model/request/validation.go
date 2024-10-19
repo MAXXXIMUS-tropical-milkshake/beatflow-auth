@@ -18,6 +18,7 @@ func ValidateSignupRequest(v *validator.Validator, req *authv1.SignupRequest) {
 
 func ValidateUpdateUserRequest(v *validator.Validator, req *authv1.UpdateUserRequest) {
 	for _, path := range req.UpdateMask.Paths {
+		validatePath(v, path)
 		if path == "username" {
 			validateUsername(v, req.User.GetUsername())
 		} else if path == "email" {
