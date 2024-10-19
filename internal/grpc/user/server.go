@@ -84,6 +84,9 @@ func (s *server) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*user
 
 	user, err := s.userService.GetUser(ctx, *getUser)
 	if err != nil {
+		if errors.Is(err, core.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		logger.Log().Error(ctx, err.Error())
 		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
