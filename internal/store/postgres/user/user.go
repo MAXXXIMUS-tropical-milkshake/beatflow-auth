@@ -24,8 +24,8 @@ func (s *store) GetUserByEmail(ctx context.Context, email string) (user *core.Us
 
 	user = new(core.User)
 
-	stmt := `SELECT id, username, email, password_hash FROM users WHERE email = $1`
-	err = s.DB.QueryRowContext(ctx, stmt, email).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash)
+	stmt := `SELECT id, username, email, password_hash, is_deleted FROM users WHERE email = $1`
+	err = s.DB.QueryRowContext(ctx, stmt, email).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.IsDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, core.ErrInvalidCredentials
@@ -42,8 +42,8 @@ func (s *store) GetUserByUsername(ctx context.Context, username string) (user *c
 
 	user = new(core.User)
 
-	stmt := `SELECT id, username, email, password_hash FROM users WHERE username = $1`
-	err = s.DB.QueryRowContext(ctx, stmt, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash)
+	stmt := `SELECT id, username, email, password_hash, is_deleted FROM users WHERE username = $1`
+	err = s.DB.QueryRowContext(ctx, stmt, username).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.IsDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, core.ErrInvalidCredentials
@@ -60,8 +60,8 @@ func (s *store) GetUserByID(ctx context.Context, userID int) (user *core.User, e
 
 	user = new(core.User)
 
-	stmt := `SELECT id, username, email, password_hash FROM users WHERE id = $1`
-	err = s.DB.QueryRowContext(ctx, stmt, userID).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash)
+	stmt := `SELECT id, username, email, password_hash, is_deleted FROM users WHERE id = $1`
+	err = s.DB.QueryRowContext(ctx, stmt, userID).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.IsDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, core.ErrUserNotFound
@@ -177,4 +177,20 @@ func (s *store) UpdateUser(ctx context.Context, user core.UpdateUser) (userID in
 	}
 
 	return userID, nil
+}
+
+func (s *store) DeleteUser(ctx context.Context, userID int) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	stmt := `UPDATE users SET
+	is_deleted = true
+	WHERE id = $1`
+
+	err := s.DB.QueryRowContext(ctx, stmt, userID).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

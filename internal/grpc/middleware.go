@@ -33,7 +33,7 @@ func EnsureValidToken(secret string, requireAuth map[string]bool) grpc.UnaryServ
 		tokenString := strings.TrimPrefix(authorization[0], "Bearer")
 		tokenString = strings.TrimSpace(tokenString)
 
-		id, err := validToken(ctx, tokenString, secret)
+		id, err := ValidToken(ctx, tokenString, secret)
 		if err != nil {
 			logger.Log().Debug(ctx, err.Error())
 			return nil, status.Error(codes.Unauthenticated, core.ErrUnauthorized.Error())

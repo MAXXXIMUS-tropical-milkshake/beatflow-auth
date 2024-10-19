@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func validToken(ctx context.Context, tokenString string, secret string) (*int, error) {
+func ValidToken(ctx context.Context, tokenString string, secret string) (*int, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			logger.Log().Error(ctx, "unexpected signing method")

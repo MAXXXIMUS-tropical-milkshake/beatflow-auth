@@ -9,7 +9,6 @@ type (
 	AuthService interface {
 		Login(ctx context.Context, user User) (accessToken *string, refreshToken *string, err error)
 		Signup(ctx context.Context, user User) (*User, error)
-		UpdateUser(ctx context.Context, user UpdateUser) (*User, error)
 		RefreshToken(ctx context.Context, refreshToken string) (*string, *string, error)
 	}
 

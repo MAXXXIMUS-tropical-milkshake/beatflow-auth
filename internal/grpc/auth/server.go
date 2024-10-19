@@ -8,8 +8,8 @@ import (
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core"
 	helper "github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/grpc"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
-	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/request"
-	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/response"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/auth"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/validator"
 	authv1 "github.com/MAXXXIMUS-tropical-milkshake/beatflow-protos/gen/go/auth"
 	"google.golang.org/grpc"
@@ -19,15 +19,16 @@ import (
 
 type server struct {
 	authv1.UnimplementedAuthServiceServer
-	auth core.AuthService
+	authService core.AuthService
+	authConfig  core.AuthConfig
 }
 
-func Register(gRPCServer *grpc.Server, auth core.AuthService) {
-	authv1.RegisterAuthServiceServer(gRPCServer, &server{auth: auth})
+func Register(gRPCServer *grpc.Server, authService core.AuthService, authConfig core.AuthConfig) {
+	authv1.RegisterAuthServiceServer(gRPCServer, &server{authService: authService, authConfig: authConfig})
 }
 
 func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.RefreshTokenResponse, error) {
-	accessToken, refreshToken, err := s.auth.RefreshToken(ctx, req.GetRefreshToken())
+	accessToken, refreshToken, err := s.authService.RefreshToken(ctx, req.GetRefreshToken())
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrRefreshTokenNotValid) {
@@ -36,19 +37,19 @@ func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenReque
 		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
 
-	return response.ToRefreshTokenResponse(*accessToken, *refreshToken), nil
+	return auth.ToRefreshTokenResponse(*accessToken, *refreshToken), nil
 }
 
 func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	v := validator.New()
-	if request.ValidateLoginRequest(v, req); !v.Valid() {
+	if model.ValidateLoginRequest(v, req); !v.Valid() {
 		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
 		return nil, helper.ToGRPCError(v)
 	}
 
-	user := request.FromLoginRequest(req)
+	user := auth.FromLoginRequest(req)
 
-	accessToken, refreshToken, err := s.auth.Login(ctx, *user)
+	accessToken, refreshToken, err := s.authService.Login(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrInvalidCredentials) {
@@ -62,14 +63,14 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 
 func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1.SignupResponse, error) {
 	v := validator.New()
-	if request.ValidateSignupRequest(v, req); !v.Valid() {
+	if model.ValidateSignupRequest(v, req); !v.Valid() {
 		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
 		return nil, helper.ToGRPCError(v)
 	}
 
-	user := request.FromSignupRequest(req)
+	user := auth.FromSignupRequest(req)
 
-	retUser, err := s.auth.Signup(ctx, *user)
+	retUser, err := s.authService.Signup(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrEmailAlreadyExists) || errors.Is(err, core.ErrUsernameAlreadyExists) {
@@ -78,34 +79,18 @@ func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1
 		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
 
-	return response.ToSignupResponse(*retUser), nil
+	return auth.ToSignupResponse(*retUser), nil
 }
 
-func (s *server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) (*authv1.UpdateUserResponse, error) {
-	v := validator.New()
-	if request.ValidateUpdateUserRequest(v, req); !v.Valid() {
-		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
-		return nil, helper.ToGRPCError(v)
-	}
-
-	userID, err := helper.GetUserIDFromContext(ctx)
+func (s *server) ValidateToken(ctx context.Context, req *authv1.ValidateTokenRequest) (*authv1.ValidateTokenResponse, error) {
+	userID, err := helper.ValidToken(ctx, req.GetToken(), s.authConfig.Secret)
 	if err != nil {
-		logger.Log().Error(ctx, err.Error())
-		return nil, status.Error(codes.Unauthenticated, core.ErrInvalidCredentials.Error())
-	}
-
-	user := request.FromUpdateUserRequest(req, userID)
-
-	retUser, err := s.auth.UpdateUser(ctx, *user)
-	if err != nil {
-		logger.Log().Error(ctx, err.Error())
-		if errors.Is(err, core.ErrInvalidCredentials) {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		} else if errors.Is(err, core.ErrEmailAlreadyExists) || errors.Is(err, core.ErrUsernameAlreadyExists) {
-			return nil, status.Error(codes.AlreadyExists, err.Error())
+		if errors.Is(err, core.ErrUnauthorized) {
+			return auth.ToValidateTokenResponse(false, 0), nil
 		}
+		logger.Log().Error(ctx, err.Error())
 		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
 
-	return response.ToUpdateUserResponse(*retUser), nil
+	return auth.ToValidateTokenResponse(true, *userID), nil
 }

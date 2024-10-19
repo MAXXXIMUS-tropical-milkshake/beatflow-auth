@@ -1,4 +1,4 @@
-package response
+package auth
 
 import (
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core"
@@ -13,17 +13,31 @@ func ToSignupResponse(user core.User) *authv1.SignupResponse {
 	}
 }
 
-func ToUpdateUserResponse(user core.User) *authv1.UpdateUserResponse {
-	return &authv1.UpdateUserResponse{
-		UserId:   int64(user.ID),
-		Username: user.Username,
-		Email:    user.Email,
-	}
-}
-
 func ToRefreshTokenResponse(accessToken, refreshToken string) *authv1.RefreshTokenResponse {
 	return &authv1.RefreshTokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+	}
+}
+
+func FromLoginRequest(req *authv1.LoginRequest) *core.User {
+	return &core.User{
+		Email:        req.GetEmail(),
+		PasswordHash: req.GetPassword(),
+	}
+}
+
+func FromSignupRequest(req *authv1.SignupRequest) *core.User {
+	return &core.User{
+		Username:     req.GetUsername(),
+		Email:        req.GetEmail(),
+		PasswordHash: req.GetPassword(),
+	}
+}
+
+func ToValidateTokenResponse(isValid bool, userID int) *authv1.ValidateTokenResponse {
+	return &authv1.ValidateTokenResponse{
+		IsValid: isValid,
+		UserId:  int64(userID),
 	}
 }
