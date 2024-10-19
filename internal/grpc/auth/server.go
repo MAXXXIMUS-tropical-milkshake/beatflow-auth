@@ -72,7 +72,7 @@ func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1
 	retUser, err := s.auth.Signup(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		if errors.Is(err, core.ErrUserAlreadyExists) {
+		if errors.Is(err, core.ErrEmailAlreadyExists) || errors.Is(err, core.ErrUsernameAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
 		return nil, status.Error(codes.Internal, core.ErrInternal.Error())

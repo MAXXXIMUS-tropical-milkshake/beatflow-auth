@@ -95,7 +95,7 @@ func (s *store) AddUser(ctx context.Context, user core.User) (userID int, err er
 
 	err = tx.QueryRowContext(ctx, stmt, user.Username).Scan(&userID)
 	if userID != 0 {
-		return 0, core.ErrUserAlreadyExists
+		return 0, core.ErrUsernameAlreadyExists
 	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, err
 	}
@@ -105,7 +105,7 @@ func (s *store) AddUser(ctx context.Context, user core.User) (userID int, err er
 
 	err = tx.QueryRowContext(ctx, stmt, user.Email).Scan(&userID)
 	if userID != 0 {
-		return 0, core.ErrUserAlreadyExists
+		return 0, core.ErrEmailAlreadyExists
 	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, err
 	}
