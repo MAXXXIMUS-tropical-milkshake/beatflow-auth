@@ -10,7 +10,7 @@ import (
 func GenerateToken(id int, authConfig core.AuthConfig) (*string, error) {
 	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, jwtlib.MapClaims{
 		"id":  id,
-		"exp": time.Now().Add(time.Minute * time.Duration(authConfig.TokenTTL)).Unix(),
+		"exp": time.Now().Add(time.Minute * time.Duration(authConfig.AccessTokenTTL)).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(authConfig.Secret))

@@ -7,7 +7,9 @@ import (
 
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/config"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core"
+	middleware "github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/grpc"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/grpc/auth"
+	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/grpc/user"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -24,14 +26,20 @@ type App struct {
 
 func New(
 	ctx context.Context,
-	userService core.AuthService,
+	authService core.AuthService,
+	userService core.UserService,
+	authConfig core.AuthConfig,
 	cfg *config.Config,
 ) *App {
 	// Methods that require authentication
 	requireAuth := map[string]bool{
-		"/auth.Auth/Login":          false,
-		"/auth.Auth/Signup":         false,
-		"/auth.Auth/UpdatePassword": true,
+		"/auth.AuthService/Login":         false,
+		"/auth.AuthService/Signup":        false,
+		"/auth.AuthService/RefreshToken":  false,
+		"/auth.AuthService/ValidateToken": false,
+		"/user.UserService/UpdateUser":    true,
+		"/user.UserService/GetUser":       false,
+		"/user.UserService/DeleteUser":    true,
 	}
 
 	opts := []grpc.ServerOption{}
@@ -47,7 +55,7 @@ func New(
 	// Recovery
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p any) (err error) {
-			logger.Log().Error(ctx, "recovered from panic")
+			logger.Log().Error(ctx, fmt.Sprintf("recovered from panic: %q", p))
 
 			return status.Errorf(codes.Internal, "internal error")
 		}),
@@ -56,7 +64,7 @@ func New(
 	opts = append(opts, grpc.ChainUnaryInterceptor(
 		recovery.UnaryServerInterceptor(recoveryOpts...),
 		logging.UnaryServerInterceptor(interceptorLogger(logger.Log()), loggingOpts...),
-		auth.EnsureValidToken(cfg.JWTSecret, requireAuth),
+		middleware.EnsureValidToken(cfg.JWTSecret, requireAuth),
 	))
 
 	// TLS
@@ -71,11 +79,12 @@ func New(
 	gRPCServer := grpc.NewServer(opts...)
 
 	// Register services
-	auth.Register(gRPCServer, userService)
+	auth.Register(gRPCServer, authService, authConfig)
+	user.Register(gRPCServer, userService)
 
 	return &App{
 		gRPCServer: gRPCServer,
-		port:       cfg.Port,
+		port:       cfg.GRPCPort,
 	}
 }
 

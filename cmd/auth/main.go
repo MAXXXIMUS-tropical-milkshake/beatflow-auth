@@ -20,10 +20,13 @@ func main() {
 
 	application := app.New(ctx, cfg)
 
-	// Closing DB
+	// Closing DBs
 	defer application.PG.Close(ctx)
+	defer application.RDB.Close()
 
 	go func() { application.GRPCServer.MustRun(ctx) }()
+
+	go func() { application.HTTPServer.MustRun(ctx) }()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -32,4 +35,5 @@ func main() {
 
 	// Stopping server
 	application.GRPCServer.Stop(ctx)
+	application.HTTPServer.Stop(ctx)
 }

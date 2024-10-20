@@ -16,7 +16,9 @@ type (
 	}
 
 	HTTP struct {
-		Port string
+		GRPCPort    string
+		HTTPPort    string
+		ReadTimeout int
 	}
 
 	Log struct {
@@ -24,7 +26,10 @@ type (
 	}
 
 	DB struct {
-		URL string
+		URL           string
+		RedisAddr     string
+		RedisPassword string
+		RedisDB       int
 	}
 
 	TLS struct {
@@ -33,15 +38,18 @@ type (
 	}
 
 	Auth struct {
-		JWTSecret string
-		TokenTTL  int
+		JWTSecret       string
+		AccessTokenTTL  int
+		RefreshTokenTTL int
 	}
 )
 
 func NewConfig() (*Config, error) {
-	port := flag.String("port", "8080", "HTTP port")
+	gRPCPort := flag.String("grpc_port", "localhost:50010", "GRPC Port")
+	httpPort := flag.String("http_port", "localhost:8080", "HTTP Port")
 	logLevel := flag.String("log_level", string(logger.InfoLevel), "logger level")
 	dbURL := flag.String("db_url", "", "url for connection to database")
+	readTimeout := flag.Int("read_timeout", 5, "read timeout")
 
 	// TLS
 	cert := flag.String("cert", "", "path to cert file")
@@ -49,27 +57,39 @@ func NewConfig() (*Config, error) {
 
 	// JWT
 	jwtSecret := flag.String("jwt_secret", "", "jwt secret")
-	tokenTTL := flag.Int("token_ttl", 10, "token ttl")
+	accessTokenTTL := flag.Int("access_token_ttl", 2, "access token ttl")
+	refreshTokenTTL := flag.Int("refresh_token_ttl", 14400, "refresh token ttl")
+
+	// Redis
+	redisAddr := flag.String("redis_addr", "localhost:6379", "redis address")
+	redisPassword := flag.String("redis_password", "", "redis password")
+	redisDB := flag.Int("redis_db", 0, "redis db")
 
 	flag.Parse()
 
 	cfg := &Config{
 		HTTP: HTTP{
-			Port: *port,
+			GRPCPort:    *gRPCPort,
+			HTTPPort:    *httpPort,
+			ReadTimeout: *readTimeout,
 		},
 		Log: Log{
 			Level: *logLevel,
 		},
 		DB: DB{
-			URL: *dbURL,
+			URL:           *dbURL,
+			RedisAddr:     *redisAddr,
+			RedisPassword: *redisPassword,
+			RedisDB:       *redisDB,
 		},
 		TLS: TLS{
 			Cert: *cert,
 			Key:  *key,
 		},
 		Auth: Auth{
-			JWTSecret: *jwtSecret,
-			TokenTTL:  *tokenTTL,
+			JWTSecret:       *jwtSecret,
+			AccessTokenTTL:  *accessTokenTTL,
+			RefreshTokenTTL: *refreshTokenTTL,
 		},
 	}
 
