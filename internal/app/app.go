@@ -4,6 +4,7 @@ import (
 	"context"
 
 	grpcapp "github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/app/gprc"
+	httpapp "github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/app/http"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/config"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/logger"
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/lib/postgres"
@@ -16,6 +17,7 @@ import (
 
 type App struct {
 	GRPCServer *grpcapp.App
+	HTTPServer *httpapp.App
 	PG         *postgres.Postgres
 	RDB        *redis.Redis
 }
@@ -54,8 +56,12 @@ func New(ctx context.Context, cfg *config.Config) *App {
 	// gRPC server
 	gRPCApp := grpcapp.New(ctx, authService, userService, authConfig, cfg)
 
+	// HTTP server
+	httpServer := httpapp.New(ctx, cfg)
+
 	return &App{
 		GRPCServer: gRPCApp,
+		HTTPServer: httpServer,
 		PG:         pg,
 		RDB:        rdb,
 	}

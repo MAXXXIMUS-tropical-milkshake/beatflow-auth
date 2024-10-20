@@ -2,6 +2,7 @@ package validator
 
 import (
 	"regexp"
+	"strings"
 )
 
 var (
@@ -51,4 +52,8 @@ func OneOf(value string, other ...string) bool {
 		}
 	}
 	return false
+}
+
+func HasPrefix(value string, prefix string) bool {
+	return strings.HasPrefix(value, prefix)
 }

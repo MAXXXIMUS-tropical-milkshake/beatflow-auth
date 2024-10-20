@@ -26,6 +26,8 @@ func main() {
 
 	go func() { application.GRPCServer.MustRun(ctx) }()
 
+	go func() { application.HTTPServer.MustRun(ctx) }()
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -33,4 +35,5 @@ func main() {
 
 	// Stopping server
 	application.GRPCServer.Stop(ctx)
+	application.HTTPServer.Stop(ctx)
 }

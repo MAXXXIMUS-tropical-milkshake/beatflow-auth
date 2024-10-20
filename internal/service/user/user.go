@@ -68,18 +68,8 @@ func (s *service) UpdateUser(ctx context.Context, user core.UpdateUser) (*core.U
 	return retUser, nil
 }
 
-func (s *service) GetUser(ctx context.Context, user core.GetUser) (*core.User, error) {
-	var retUser *core.User
-	var err error
-
-	if user.ID != nil {
-		retUser, err = s.userStorage.GetUserByID(ctx, *user.ID)
-	} else if user.Email != nil {
-		retUser, err = s.userStorage.GetUserByEmail(ctx, *user.Email)
-	} else if user.Username != nil {
-		retUser, err = s.userStorage.GetUserByUsername(ctx, *user.Username)
-	}
-
+func (s *service) GetUser(ctx context.Context, user core.User) (*core.User, error) {
+	retUser, err := s.userStorage.GetUserByID(ctx, user.ID)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		return nil, err

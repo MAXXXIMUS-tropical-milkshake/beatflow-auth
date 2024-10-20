@@ -14,15 +14,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	email    = "alex@gmail.com"
+	password = "Qwerty123456"
+)
+
 func TestSignup_Success(t *testing.T) {
+	t.Parallel()
+
 	// init server and client
 	authService := mocks.NewMockAuthService(t)
 	client := &server{authService: authService}
 
 	// vars
 	username := "alex123"
-	email := "alex@gmail.com"
-	password := "Qwerty123456"
 	user := &authv1.SignupRequest{
 		Username: username,
 		Email:    email,
@@ -50,14 +55,14 @@ func TestSignup_Success(t *testing.T) {
 }
 
 func TestSignup_ValidationErrors(t *testing.T) {
+	t.Parallel()
+
 	// init server and client
 	authService := mocks.NewMockAuthService(t)
 	client := &server{authService: authService}
 
 	// vars
-	password := "Qwerty123456"
 	username := "alex123"
-	email := "alex@gmail.com"
 	wantErr := status.Error(codes.InvalidArgument, core.ErrValidationFailed.Error())
 
 	tests := []struct {
@@ -99,6 +104,8 @@ func TestSignup_ValidationErrors(t *testing.T) {
 }
 
 func TestSignup_SignupError(t *testing.T) {
+	t.Parallel()
+
 	// init server and client
 	authService := mocks.NewMockAuthService(t)
 	client := &server{authService: authService}
@@ -106,8 +113,8 @@ func TestSignup_SignupError(t *testing.T) {
 	// vars
 	user := &authv1.SignupRequest{
 		Username: "alex123",
-		Email:    "alex@gmail.com",
-		Password: "Qwerty123456",
+		Email:    email,
+		Password: password,
 	}
 
 	tests := []struct {
@@ -141,13 +148,13 @@ func TestSignup_SignupError(t *testing.T) {
 }
 
 func TestLogin_Success(t *testing.T) {
+	t.Parallel()
+
 	// init server and client
 	authService := mocks.NewMockAuthService(t)
 	client := &server{authService: authService}
 
 	// vars
-	email := "alex@gmail.com"
-	password := "Qwerty123456"
 	user := &authv1.LoginRequest{
 		Email:    email,
 		Password: password,
@@ -168,14 +175,17 @@ func TestLogin_Success(t *testing.T) {
 }
 
 func TestLogin_LoginError(t *testing.T) {
+	t.Parallel()
+
 	// init server and client
 	authService := mocks.NewMockAuthService(t)
 	client := &server{authService: authService}
 
 	// vars
+	ctx := context.Background()
 	user := &authv1.LoginRequest{
-		Email:    "alex@gmail.com",
-		Password: "Qwerty123456",
+		Email:    email,
+		Password: password,
 	}
 
 	tests := []struct {
@@ -206,7 +216,7 @@ func TestLogin_LoginError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.behaviour()
 
-			_, err := client.Login(context.Background(), user)
+			_, err := client.Login(ctx, user)
 			st, ok := status.FromError(err)
 			require.True(t, ok)
 			require.Equal(t, st.Code(), codes.Unauthenticated)

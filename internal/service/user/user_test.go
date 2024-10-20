@@ -191,8 +191,8 @@ func TestGetUser_Success(t *testing.T) {
 
 	// vars
 	userID := 1
-	getUser := core.GetUser{
-		ID: &userID,
+	getUser := core.User{
+		ID: userID,
 	}
 	userFromDB := &core.User{
 		ID:       userID,
@@ -215,8 +215,8 @@ func TestGetUser_Fail(t *testing.T) {
 	userService, userStore := initService(t)
 
 	// vars
-	getUser := core.GetUser{
-		ID: &[]int{1}[0],
+	getUser := core.User{
+		ID: 1,
 	}
 	wantErr := errors.New("internal error")
 

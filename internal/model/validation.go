@@ -1,9 +1,12 @@
 package model
 
 import (
+	"strings"
+
 	"github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/model/validator"
 	authv1 "github.com/MAXXXIMUS-tropical-milkshake/beatflow-protos/gen/go/auth"
 	userv1 "github.com/MAXXXIMUS-tropical-milkshake/beatflow-protos/gen/go/user"
+	fieldmask "google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 func ValidateLoginRequest(v *validator.Validator, req *authv1.LoginRequest) {
@@ -18,34 +21,30 @@ func ValidateSignupRequest(v *validator.Validator, req *authv1.SignupRequest) {
 }
 
 func ValidateUpdateUserRequest(v *validator.Validator, req *userv1.UpdateUserRequest) {
-	for _, path := range req.UpdateMask.Paths {
-		validateUpdateUserRequestPath(v, path)
+	validateMask(v, req.GetUpdateMask())
+	for _, path := range req.GetUpdateMask().GetPaths() {
+		validatePath(v, path)
 		if path == "username" {
 			validateUsername(v, req.User.GetUsername())
 		} else if path == "email" {
 			validateEmail(v, req.User.GetEmail())
-		} else if path == "password" {
-			validatePassword(v, req.User.GetPassword().OldPassword)
-			validatePassword(v, req.User.GetPassword().NewPassword)
+		} else if strings.HasPrefix(path, "password") {
+			validatePassword(v, req.User.GetPassword().GetOldPassword())
+			validatePassword(v, req.User.GetPassword().GetNewPassword())
 		}
 	}
 }
 
 func ValidateGetUserRequest(v *validator.Validator, req *userv1.GetUserRequest) {
-	for _, path := range req.GetMask.Paths {
-		validateGetUserRequestPath(v, path)
-		if path == "username" {
-			validateUsername(v, req.GetUser().GetUsername())
-		} else if path == "email" {
-			validateEmail(v, req.GetUser().GetEmail())
-		} else if path == "user_id" {
-			validateUserID(v, int(req.GetUser().GetUserId()))
-		}
-	}
+	validateID(v, int(req.GetUserId()))
 }
 
-func validateUserID(v *validator.Validator, userID int) {
-	v.Check(validator.AtLeast(userID, 1), "user_id", "must be positive")
+func validateID(v *validator.Validator, id int) {
+	v.Check(id > 0, "id", "must be positive")
+}
+
+func validateMask(v *validator.Validator, mask *fieldmask.FieldMask) {
+	v.Check(mask != nil, "mask", "mask is required")
 }
 
 func validateEmail(v *validator.Validator, email string) {
@@ -60,10 +59,6 @@ func validatePassword(v *validator.Validator, password string) {
 	v.Check(validator.AtLeast(len(password), 8), "password", "must contain at least 8 characters")
 }
 
-func validateUpdateUserRequestPath(v *validator.Validator, path string) {
-	v.Check(validator.OneOf(path, "username", "email", "password"), "path", "path should be one of username, email or password")
-}
-
-func validateGetUserRequestPath(v *validator.Validator, path string) {
-	v.Check(validator.OneOf(path, "username", "email", "user_id"), "user_id", "path should be one of username, email or user_id")
+func validatePath(v *validator.Validator, path string) {
+	v.Check(validator.OneOf(path, "username", "email") || validator.HasPrefix(path, "password"), "path", "path should be one of username, email or password")
 }

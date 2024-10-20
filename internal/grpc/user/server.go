@@ -46,7 +46,7 @@ func (s *server) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) 
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
 		if errors.Is(err, core.ErrInvalidCredentials) {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		} else if errors.Is(err, core.ErrEmailAlreadyExists) || errors.Is(err, core.ErrUsernameAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		} else if errors.Is(err, core.ErrAlreadyDeleted) {

@@ -16,7 +16,9 @@ type (
 	}
 
 	HTTP struct {
-		Port string
+		GRPCPort    string
+		HTTPPort    string
+		ReadTimeout int
 	}
 
 	Log struct {
@@ -43,9 +45,11 @@ type (
 )
 
 func NewConfig() (*Config, error) {
-	port := flag.String("port", "8080", "HTTP port")
+	gRPCPort := flag.String("grpc_port", "localhost:50010", "GRPC Port")
+	httpPort := flag.String("http_port", "localhost:8080", "HTTP Port")
 	logLevel := flag.String("log_level", string(logger.InfoLevel), "logger level")
 	dbURL := flag.String("db_url", "", "url for connection to database")
+	readTimeout := flag.Int("read_timeout", 5, "read timeout")
 
 	// TLS
 	cert := flag.String("cert", "", "path to cert file")
@@ -65,7 +69,9 @@ func NewConfig() (*Config, error) {
 
 	cfg := &Config{
 		HTTP: HTTP{
-			Port: *port,
+			GRPCPort:    *gRPCPort,
+			HTTPPort:    *httpPort,
+			ReadTimeout: *readTimeout,
 		},
 		Log: Log{
 			Level: *logLevel,

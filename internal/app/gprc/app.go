@@ -84,7 +84,7 @@ func New(
 
 	return &App{
 		gRPCServer: gRPCServer,
-		port:       cfg.Port,
+		port:       cfg.GRPCPort,
 	}
 }
 
