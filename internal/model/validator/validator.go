@@ -54,6 +54,6 @@ func OneOf(value string, other ...string) bool {
 	return false
 }
 
-func HasPrefix(value string, prefix string) bool {
+func HasPrefix(value, prefix string) bool {
 	return strings.HasPrefix(value, prefix)
 }
