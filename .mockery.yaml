@@ -1,0 +1,6 @@
+dir: "{{.InterfaceDir}}/mocks"
+with-expecter: True
+packages:
+  github.com/MAXXXIMUS-tropical-milkshake/beatflow-auth/internal/core:
+    config:
+      all: True

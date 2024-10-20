@@ -28,7 +28,7 @@ func (s *store) GetUserByEmail(ctx context.Context, email string) (user *core.Us
 	err = s.DB.QueryRowContext(ctx, stmt, email).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.IsDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, core.ErrInvalidCredentials
+			return nil, core.ErrUserNotFound
 		}
 		return nil, err
 	}

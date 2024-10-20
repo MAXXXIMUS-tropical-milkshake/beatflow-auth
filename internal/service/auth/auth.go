@@ -77,7 +77,7 @@ func (s *service) Login(ctx context.Context, user core.User) (*string, *string, 
 
 	if userFromDB.IsDeleted {
 		logger.Log().Error(ctx, core.ErrAlreadyDeleted.Error())
-		return nil, nil, core.ErrInvalidCredentials
+		return nil, nil, core.ErrAlreadyDeleted
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(userFromDB.PasswordHash), []byte(user.PasswordHash))

@@ -52,8 +52,8 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 	accessToken, refreshToken, err := s.authService.Login(ctx, *user)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
-		if errors.Is(err, core.ErrInvalidCredentials) {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
+		if errors.Is(err, core.ErrInvalidCredentials) || errors.Is(err, core.ErrUserNotFound) || errors.Is(err, core.ErrAlreadyDeleted) {
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		return nil, status.Error(codes.Internal, core.ErrInternal.Error())
 	}
