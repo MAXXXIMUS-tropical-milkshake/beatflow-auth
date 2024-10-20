@@ -13,14 +13,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func TestDeleteUser_Success(t *testing.T) {
-	t.Parallel()
-
+func initService(t *testing.T) (core.UserService, *mocks.MockUserStore) {
 	// store
 	userStore := mocks.NewMockUserStore(t)
 
 	// service
 	userService := New(userStore)
+
+	return userService, userStore
+}
+
+func TestDeleteUser_Success(t *testing.T) {
+	t.Parallel()
+
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	userID := 1
@@ -35,11 +42,8 @@ func TestDeleteUser_Success(t *testing.T) {
 func TestDeleteUser_Fail(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	wantErr := errors.New("internal error")
@@ -54,11 +58,8 @@ func TestDeleteUser_Fail(t *testing.T) {
 func TestUpdateUser_Success(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	userID := 1
@@ -84,11 +85,8 @@ func TestUpdateUser_Success(t *testing.T) {
 func TestUpdateUser_UpdatePasswordSuccess(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	userID := 1
@@ -122,11 +120,8 @@ func TestUpdateUser_UpdatePasswordSuccess(t *testing.T) {
 func TestUpdateUser_AlreadyDeleted(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	userFromDB := &core.User{
@@ -143,11 +138,8 @@ func TestUpdateUser_AlreadyDeleted(t *testing.T) {
 func TestUpdateUser_Fail(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	ctx := context.Background()
@@ -194,11 +186,8 @@ func TestUpdateUser_Fail(t *testing.T) {
 func TestGetUser_Success(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	userID := 1
@@ -222,11 +211,8 @@ func TestGetUser_Success(t *testing.T) {
 func TestGetUser_Fail(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-
-	// service
-	userService := New(userStore)
+	// service and store
+	userService, userStore := initService(t)
 
 	// vars
 	getUser := core.GetUser{

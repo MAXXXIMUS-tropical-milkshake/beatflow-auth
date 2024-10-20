@@ -20,6 +20,24 @@ const (
 	password = "Qwerty123456"
 )
 
+func initService(t *testing.T) (core.AuthService, *mocks.MockUserStore, *mocks.MockRefreshTokenStore) {
+	// store
+	userStore := mocks.NewMockUserStore(t)
+	refreshTokenStore := mocks.NewMockRefreshTokenStore(t)
+
+	// config
+	authConfig := core.AuthConfig{
+		Secret:          "secret",
+		AccessTokenTTL:  10,
+		RefreshTokenTTL: 20,
+	}
+
+	// service
+	authService := New(userStore, refreshTokenStore, authConfig)
+
+	return authService, userStore, refreshTokenStore
+}
+
 func isUUID(val string) bool {
 	_, err := uuid.Parse(val)
 	return err == nil
@@ -62,19 +80,8 @@ func parseToken(tokenString, secret string) (userID *int, expiresAt *time.Time, 
 func TestSignup_Success(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-	refreshTokenStore := mocks.NewMockRefreshTokenStore(t)
-
-	// config
-	authConfig := core.AuthConfig{
-		Secret:          "secret",
-		AccessTokenTTL:  10,
-		RefreshTokenTTL: 20,
-	}
-
-	// service
-	authService := New(userStore, refreshTokenStore, authConfig)
+	// service and stores
+	authService, userStore, _ := initService(t)
 
 	// vars
 	userID := 1
@@ -101,19 +108,8 @@ func TestSignup_Success(t *testing.T) {
 func TestSignup_Fail(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-	refreshTokenStore := mocks.NewMockRefreshTokenStore(t)
-
-	// config
-	authConfig := core.AuthConfig{
-		Secret:          "secret",
-		AccessTokenTTL:  10,
-		RefreshTokenTTL: 20,
-	}
-
-	// service
-	authService := New(userStore, refreshTokenStore, authConfig)
+	// service and stores
+	authService, userStore, _ := initService(t)
 
 	// vars
 	ctx := context.Background()
@@ -209,22 +205,8 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_AlreadyDeletedUser(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-	refreshTokenStore := mocks.NewMockRefreshTokenStore(t)
-
-	// config
-	atTTL := 10
-	rtTTL := 20
-
-	authConfig := core.AuthConfig{
-		Secret:          "secret",
-		AccessTokenTTL:  atTTL,
-		RefreshTokenTTL: rtTTL,
-	}
-
-	// service
-	authService := New(userStore, refreshTokenStore, authConfig)
+	// service and stores
+	authService, userStore, _ := initService(t)
 
 	// vars
 	userFromDB := &core.User{
@@ -241,22 +223,8 @@ func TestLogin_AlreadyDeletedUser(t *testing.T) {
 func TestLogin_InvalidPassword(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-	refreshTokenStore := mocks.NewMockRefreshTokenStore(t)
-
-	// config
-	atTTL := 10
-	rtTTL := 20
-
-	authConfig := core.AuthConfig{
-		Secret:          "secret",
-		AccessTokenTTL:  atTTL,
-		RefreshTokenTTL: rtTTL,
-	}
-
-	// service
-	authService := New(userStore, refreshTokenStore, authConfig)
+	// service and stores
+	authService, userStore, _ := initService(t)
 
 	// vars
 	user := core.User{
@@ -276,22 +244,8 @@ func TestLogin_InvalidPassword(t *testing.T) {
 func TestLogin_Fail(t *testing.T) {
 	t.Parallel()
 
-	// store
-	userStore := mocks.NewMockUserStore(t)
-	refreshTokenStore := mocks.NewMockRefreshTokenStore(t)
-
-	// config
-	atTTL := 10
-	rtTTL := 20
-
-	authConfig := core.AuthConfig{
-		Secret:          "secret",
-		AccessTokenTTL:  atTTL,
-		RefreshTokenTTL: rtTTL,
-	}
-
-	// service
-	authService := New(userStore, refreshTokenStore, authConfig)
+	// service and stores
+	authService, userStore, refreshTokenStore := initService(t)
 
 	// vars
 	ctx := context.Background()
