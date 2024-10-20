@@ -87,6 +87,7 @@ func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1
 func (s *server) ValidateToken(ctx context.Context, req *authv1.ValidateTokenRequest) (*authv1.ValidateTokenResponse, error) {
 	userID, err := helper.ValidToken(ctx, req.GetToken(), s.authConfig.Secret)
 	if err != nil {
+		logger.Log().Debug(ctx, err.Error())
 		if errors.Is(err, core.ErrUnauthorized) {
 			return auth.ToValidateTokenResponse(false, 0), nil
 		}
