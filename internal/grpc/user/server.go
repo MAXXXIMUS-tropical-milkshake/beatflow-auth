@@ -28,7 +28,8 @@ func Register(gRPCServer *grpc.Server, userService core.UserService) {
 
 func (s *server) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*userv1.UpdateUserResponse, error) {
 	v := validator.New()
-	if model.ValidateUpdateUserRequest(v, req); !v.Valid() {
+	model.ValidateUpdateUserRequest(v, req)
+	if !v.Valid() {
 		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
 		return nil, helper.ToGRPCError(v)
 	}
@@ -75,7 +76,8 @@ func (s *server) DeleteUser(ctx context.Context, req *userv1.DeleteUserRequest) 
 
 func (s *server) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.GetUserResponse, error) {
 	v := validator.New()
-	if model.ValidateGetUserRequest(v, req); !v.Valid() {
+	model.ValidateGetUserRequest(v, req)
+	if !v.Valid() {
 		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
 		return nil, helper.ToGRPCError(v)
 	}

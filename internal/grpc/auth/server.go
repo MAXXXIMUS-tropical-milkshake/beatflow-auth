@@ -42,7 +42,8 @@ func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenReque
 
 func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	v := validator.New()
-	if model.ValidateLoginRequest(v, req); !v.Valid() {
+	model.ValidateLoginRequest(v, req)
+	if !v.Valid() {
 		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
 		return nil, helper.ToGRPCError(v)
 	}
@@ -63,7 +64,8 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 
 func (s *server) Signup(ctx context.Context, req *authv1.SignupRequest) (*authv1.SignupResponse, error) {
 	v := validator.New()
-	if model.ValidateSignupRequest(v, req); !v.Valid() {
+	model.ValidateSignupRequest(v, req)
+	if !v.Valid() {
 		logger.Log().Debug(ctx, fmt.Sprintf("%+v", v.Errors))
 		return nil, helper.ToGRPCError(v)
 	}

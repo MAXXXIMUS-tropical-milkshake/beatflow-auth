@@ -16,12 +16,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	password = "Qwerty123456"
+)
+
 func isUUID(val string) bool {
 	_, err := uuid.Parse(val)
 	return err == nil
 }
 
-func parseToken(tokenString string, secret string) (userID *int, expiresAt *time.Time, err error) {
+func parseToken(tokenString, secret string) (userID *int, expiresAt *time.Time, err error) {
 	errParseToken := errors.New("failed to parse token")
 
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
@@ -74,7 +78,6 @@ func TestSignup_Success(t *testing.T) {
 
 	// vars
 	userID := 1
-	password := "Qwerty123456"
 	user := core.User{
 		Username:     "alex123",
 		Email:        "alex@gmail.com",
@@ -115,7 +118,7 @@ func TestSignup_Fail(t *testing.T) {
 	// vars
 	ctx := context.Background()
 	user := core.User{
-		PasswordHash: "Qwerty123456",
+		PasswordHash: password,
 	}
 	wantErr := errors.New("internal error")
 
@@ -170,7 +173,6 @@ func TestLogin_Success(t *testing.T) {
 
 	// vars
 	userID := 1
-	password := "Qwerty123456"
 	email := "alex@gmail.com"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
@@ -201,7 +203,7 @@ func TestLogin_Success(t *testing.T) {
 	id, exp, err := parseToken(*at, authConfig.Secret)
 	require.NoError(t, err)
 	assert.Equal(t, userID, *id)
-	assert.True(t, time.Time.Sub(wantTime, *exp) <= delta)
+	assert.True(t, wantTime.Sub(*exp) <= delta)
 }
 
 func TestLogin_AlreadyDeletedUser(t *testing.T) {
@@ -258,7 +260,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 
 	// vars
 	user := core.User{
-		PasswordHash: "Qwerty123456",
+		PasswordHash: password,
 	}
 	userFromDB := &core.User{
 		PasswordHash: "12345678",
@@ -294,7 +296,6 @@ func TestLogin_Fail(t *testing.T) {
 	// vars
 	ctx := context.Background()
 	wantError := errors.New("internal error")
-	password := "Qwerty123456"
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 	user := core.User{

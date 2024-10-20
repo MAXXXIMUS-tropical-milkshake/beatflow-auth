@@ -33,7 +33,7 @@ func New(userStorage core.UserStore, refreshTokenStorage core.RefreshTokenStore,
 	}
 }
 
-func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*string, *string, error) {
+func (s *service) RefreshToken(ctx context.Context, refreshToken string) (accesstoken, refreshtoken *string, err error) {
 	userID, err := s.refreshTokenStorage.GetRefreshToken(ctx, refreshToken)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())
@@ -68,7 +68,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*strin
 	return accessToken, &newRefreshToken, nil
 }
 
-func (s *service) Login(ctx context.Context, user core.User) (*string, *string, error) {
+func (s *service) Login(ctx context.Context, user core.User) (accesstoken, refreshtoken *string, err error) {
 	userFromDB, err := s.userStorage.GetUserByEmail(ctx, user.Email)
 	if err != nil {
 		logger.Log().Error(ctx, err.Error())

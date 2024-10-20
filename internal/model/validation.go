@@ -39,12 +39,12 @@ func ValidateGetUserRequest(v *validator.Validator, req *userv1.GetUserRequest) 
 		} else if path == "email" {
 			validateEmail(v, req.GetUser().GetEmail())
 		} else if path == "user_id" {
-			validateUserId(v, int(req.GetUser().GetUserId()))
+			validateUserID(v, int(req.GetUser().GetUserId()))
 		}
 	}
 }
 
-func validateUserId(v *validator.Validator, userID int) {
+func validateUserID(v *validator.Validator, userID int) {
 	v.Check(validator.AtLeast(userID, 1), "user_id", "must be positive")
 }
 
